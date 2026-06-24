@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrackGPT Whip</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      user-select: none;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    #canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #handle-zone {
+      position: fixed;
+      width: 110px;
+      height: 110px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      pointer-events: auto;
+      cursor: crosshair;
+      z-index: 2;
+    }
+
+    .hud {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: rgba(8, 4, 10, 0.78);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.5);
+      color: #fde8c8;
+      pointer-events: auto;
+      -webkit-app-region: drag;
+    }
+
+    .hud-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      color: #f59e0b;
+    }
+
+    .hud-karma {
+      font-size: 26px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hud-hint {
+      font-size: 10px;
+      opacity: 0.6;
+      -webkit-app-region: no-drag;
+    }
+
+    #flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background:
+        radial-gradient(
+          circle 200px at var(--flash-x, 50%) var(--flash-y, 50%),
+          rgba(255, 255, 240, 1) 0%,
+          rgba(255, 200, 60, 0.75) 14%,
+          rgba(255, 80, 20, 0.4) 32%,
+          transparent 68%
+        );
+      z-index: 1;
+    }
+
+    #flash.on {
+      animation: impactFlash 0.32s ease-out forwards;
+    }
+
+    #flash.violent.on {
+      animation: violentFlash 0.38s ease-out forwards;
+    }
+
+    @keyframes impactFlash {
+      0% { opacity: 1; filter: brightness(1.8); }
+      40% { opacity: 0.9; }
+      100% { opacity: 0; filter: brightness(1); }
+    }
+
+    @keyframes violentFlash {
+      0% { opacity: 1; filter: brightness(2.2) saturate(1.4); }
+      20% { opacity: 1; filter: brightness(1.6) hue-rotate(-8deg); }
+      100% { opacity: 0; filter: brightness(1); }
+    }
+
+    #screen-punch {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: rgba(255, 40, 20, 0.18);
+      z-index: 0;
+    }
+
+    #screen-punch.on {
+      animation: screenPunch 0.25s ease-out forwards;
+    }
+
+    @keyframes screenPunch {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    #quips {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4;
+      overflow: hidden;
+    }
+
+    .quip {
+      position: absolute;
+      transform: translate(-50%, -50%) scale(0.6);
+      opacity: 0;
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-weight: 900;
+      font-size: clamp(15px, 2.2vw, 22px);
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      color: #fef3c7;
+      background: rgba(18, 8, 4, 0.88);
+      border: 2px solid rgba(245, 158, 11, 0.75);
+      text-shadow: 0 0 12px rgba(251, 191, 36, 0.7);
+      box-shadow: 0 4px 24px rgba(245, 158, 11, 0.3);
+      transition: opacity 0.12s ease-out, transform 0.12s cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+
+    .quip.show {
+      opacity: 1;
+      transform: translate(-50%, -90%) scale(1);
+    }
+
+    .quip.gone {
+      opacity: 0;
+      transform: translate(-50%, -150%) scale(0.8);
+      transition: opacity 0.4s ease-in, transform 0.4s ease-in;
+    }
+
+    #overlay.shake {
+      animation: shake 0.18s ease-out;
+    }
+
+    #overlay.shake-violent {
+      animation: violentShake 0.32s ease-out;
+    }
+
+    .hud-armed {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 24px rgba(239, 68, 68, 0.45) !important;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-5px, 3px); }
+      50% { transform: translate(7px, -4px); }
+      75% { transform: translate(-4px, -2px); }
+    }
+
+    @keyframes violentShake {
+      0%, 100% { transform: translate(0, 0) rotate(0); }
+      12% { transform: translate(-12px, 7px) rotate(-0.6deg); }
+      28% { transform: translate(14px, -9px) rotate(0.5deg); }
+      44% { transform: translate(-10px, -6px) rotate(-0.3deg); }
+      60% { transform: translate(8px, 5px) rotate(0.25deg); }
+      76% { transform: translate(-5px, 2px) rotate(-0.1deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <canvas id="canvas"></canvas>
+    <div id="screen-punch"></div>
+    <div id="handle-zone" title="Left-click to crack"></div>
+    <div id="flash"></div>
+    <div id="quips"></div>
+    <div class="hud">
+      <div class="hud-title">CRACK THE WHIP</div>
+      <div class="hud-karma"><span id="karma">0</span> karma</div>
+      <div class="hud-hint">Hold Alt + click code to strike · Flick to snap · Right-click handle to drop · Ctrl+Shift+W hide</div>
+    </div>
+  </div>
+  <script src="whip.js"></script>
+</body>
+</html>

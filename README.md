@@ -18,8 +18,8 @@ CrackGPT-style fullscreen Electron overlay for whipping slow AI coding agents.
 ## Install & run
 
 ```bash
-git clone https://github.com/scherereric8-spec/whip-your-coding-agent.git
-cd whip-your-coding-agent
+git clone https://github.com/scherereric8-spec/whip-your-coding-agent-.git
+cd whip-your-coding-agent-
 npm install
 npm start
 ```
